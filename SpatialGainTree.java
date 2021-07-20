@@ -4,8 +4,10 @@ public class SpatialGainTree {
     private int max_depth;
     private DecisionTree.Node root;
     private DecisionTree.Node[] id2leaf;
+    private DecisionTree.Element[] allData;
     private int _n_classes, x_size, y_size;
     private float alpha;
+    private Direction dir[];
 
     class SortByFeature implements Comparator<DecisionTree.Element> {
         int f_index;
@@ -26,6 +28,12 @@ public class SpatialGainTree {
         this.x_size = x_size;
         this.y_size = y_size;
         this.alpha = alpha;
+
+        this.dir = new Direction[4];
+        dir[0] = new Top();
+        dir[1] = new Bottom();
+        dir[2] = new Left();
+        dir[3] = new Right();
     }
 
     static float get_entropy(int cnt[], int amnt) {
@@ -84,8 +92,10 @@ public class SpatialGainTree {
         int cnt[] = new int[_n_classes];
         for (int i = 0;i < data.length; ++i) {
             ++cnt[data[i].cls];
-            if (cnt[data[i].cls] > max)
+            if (cnt[data[i].cls] > max) {
+                max = cnt[data[i].cls];
                 label = data[i].cls;
+            }
         }
 
         if (depth >= max_depth || data.length <= 1) {
@@ -93,12 +103,6 @@ public class SpatialGainTree {
             node.isleaf = true;
             return;
         }
-
-        Direction dir[] = new Direction[4];
-        dir[0] = new Top();
-        dir[1] = new Bottom();
-        dir[2] = new Left();
-        dir[3] = new Right();
 
         node.isleaf = true;
 
@@ -116,7 +120,7 @@ public class SpatialGainTree {
             int left[] = new int[_n_classes], right[] = cnt.clone();
             int left_neighbor_score = 0, right_neighbor_score = neighbor_score;
             for (int j = 1; j < data.length; ++j) {
-                int c = data[j].cls;
+                int c = data[j - 1].cls;
 
                 ++left[c];
                 --right[c];
@@ -132,21 +136,19 @@ public class SpatialGainTree {
                     int id = dir[t].get(data[j - 1].id);
                     if (id == -1)
                         continue;
-                    if (tmp_id2leaf[id] == node)
+                    if (tmp_id2leaf[id] == node && allData[id].cls == c)
                         right_neighbor_score -= 2;
-                    else if (tmp_id2leaf[id] == tmp_node)
+                    else if (tmp_id2leaf[id] == tmp_node && allData[id].cls == c)
                         left_neighbor_score += 2;
                 }
 
                 float nsar = (float) (left_neighbor_score + right_neighbor_score) / data.length;
-                //System.out.println(String.format("%d %d", left_neighbor_score, right_neighbor_score));
 
                 float sig = (1.f - alpha) * entropy_decrease + alpha * nsar;
 
                 if (data[j].features[i] == data[j - 1].features[i])
                     continue;
 
-                //System.out.print(String.format("%f %f %f %f\n", sig, best_sig, nsar, entropy_decrease));
                 if (sig > best_sig) {
                     best_split_indx = j;
                     best_sig = sig;
@@ -203,11 +205,17 @@ public class SpatialGainTree {
             els[i].id = i;
         }
 
-        int score = x_size * y_size * 4;
-        score -= 2 * (x_size+ y_size);
+        allData = els;
 
-        System.out.println(score);
-        System.out.println(els.length);
+        int score = 0;
+        for (int i = 0; i < els.length; ++i)
+            for (int j = 0; j < 4; ++j) {
+                int id = dir[j].get(els[i].id);
+                if (id == -1)
+                    continue;
+                if (els[id].cls == els[i].cls)
+                    ++score;
+            }
 
         _best_split(root, 1, els, score);
     }
