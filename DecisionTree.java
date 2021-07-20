@@ -57,8 +57,10 @@ public class DecisionTree {
         int cnt[] = new int[_n_classes];
         for (int i = 0;i < data.length; ++i) {
             ++cnt[data[i].cls];
-            if (cnt[data[i].cls] > max)
+            if (cnt[data[i].cls] > max) {
+                max = cnt[data[i].cls];
                 label = data[i].cls;
+            }
         }
 
         if (depth >= max_depth || data.length <= 1) {
@@ -79,7 +81,7 @@ public class DecisionTree {
             int c;
             float gini_l, gini_r, gini;
             for (int j = 1; j < data.length; ++j) {
-                c = data[j].cls;
+                c = data[j - 1].cls;
                 ++left[c];
                 --right[c];
 
