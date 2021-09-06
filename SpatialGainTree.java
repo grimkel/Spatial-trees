@@ -10,12 +10,6 @@ public class SpatialGainTree extends Tree{
         super(max_depth, min_node_size);
 
         this.alpha = alpha;
-
-        this.dir = new Utility.Direction[4];
-        dir[0] = new Utility.Top(x_size, y_size);
-        dir[1] = new Utility.Bottom(x_size, y_size);
-        dir[2] = new Utility.Left(x_size, y_size);
-        dir[3] = new Utility.Right(x_size, y_size);
     }
 
     public void fit(float[][][] X, int[][] Y) {
@@ -23,6 +17,12 @@ public class SpatialGainTree extends Tree{
         this.y_size = X.length;
 
         data = prepare_data(X, Y);
+
+        this.dir = new Utility.Direction[4];
+        dir[0] = new Utility.Top(x_size, y_size);
+        dir[1] = new Utility.Bottom(x_size, y_size);
+        dir[2] = new Utility.Left(x_size, y_size);
+        dir[3] = new Utility.Right(x_size, y_size);
 
         id2leaf = new Utility.Node[data.length];
         Arrays.setAll(id2leaf, (index) -> root);
@@ -89,7 +89,7 @@ public class SpatialGainTree extends Tree{
 
                 float sig = (1.f - alpha) * entropy_decrease + alpha * nsar;
 
-                if (data[j].features[i] == data[j - 1].features[i])
+                if (Float.compare(data[j].features[i], data[j - 1].features[i]) == 0)
                     continue;
 
                 if (sig > best_sig) {
@@ -99,7 +99,7 @@ public class SpatialGainTree extends Tree{
                     best_right = right_neighbor_score;
                     node.isleaf = false;
                     node.feature_id = i;
-                    node.test_val = (data[j].features[i] + data[j - 1].features[i]) / 2;
+                    node.test_val = data[j].features[i];
                 }
             }
         }
@@ -116,7 +116,7 @@ public class SpatialGainTree extends Tree{
 
         int l_indx = 0, r_indx = 0;
         for (Utility.Element el : data) {
-            if (Float.compare(el.features[node.feature_id], node.test_val) <= 0) {
+            if (Float.compare(el.features[node.feature_id], node.test_val) < 0) {
                 id2leaf[el.pos] = node.l;
                 l_els[l_indx++] = el;
             } else {
